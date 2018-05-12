@@ -1,0 +1,25 @@
+
+.globl  main
+	.type	main,@function
+main:
+	pushl	%ebp
+	movl	%esp, %ebp
+
+	subl	$4, %esp
+
+	call	fun
+	addl	$0, %esp
+	movl	%ebp, %esp
+	popl	%ebp
+	ret
+	.size	main,.-main
+.globl  fun
+	.type	fun,@function
+fun:
+	pushl	%ebp
+	movl	%esp, %ebp
+
+	movl	%ebp, %esp
+	popl	%ebp
+	ret
+	.size	fun,.-fun

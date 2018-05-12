@@ -1,0 +1,66 @@
+int
+main(int argc, char **argv)
+{
+    return f(999, 0);
+}
+
+int
+f(int i, int j)
+{
+    return j;
+}
+/*
+%ebp是栈底指针，%esp是栈顶指针。
+0(%ebp--fun) |  fun的%ebp     
+4(%ebp——fun) |  main返回地址	
+-16(%ebp)    |  第二个局部变量   |8(%ebp)  |	第一个参数
+-8(%ebp) 	 |  第一个局部变量   |12(%ebp) |	第二个参数
+-4(%ebp) 	 |  保存fun函数的寄存器和本地变量和临时变量(callee-save寄存器，被调用函数寄存器)
+0(%ebp)	 	 |  main的%ebp     
+4(%ebp)  	 |  返回地址		
+8(%ebp)  	 |	第一个参数
+12(%ebp) 	 |	第二个参数
+16(%ebp) 	 |	第三个参数
+20(%ebp) 	 |
+		
+开始时%ebp == %esp
+main的局部变量就是fun的参数
+*/
+
+.file	"./funcall2.cb"
+	.text
+.globl main
+	.type	main,@function
+main:
+	pushl	%ebp        	//将原函数的%ebp压入栈，此时%esp = %esp-4
+	movl	%esp, %ebp  	//将栈底指针指向栈顶，即 使0(%ebp)指向原函数的%ebp ，满足函数调用约定，此时%esp指向0(%ebp)
+
+	subl	$4, %esp    	//用于保存callee-save寄存器
+
+	movl	$0, %eax		//把fun的参数保存为main的局部变量
+	pushl	%eax        	//等价于 subl $4, %ebp; movl %eax, (%ebp)
+	movl	$999, %eax
+	pushl	%eax			//等价于 subl $4, %ebp; movl %eax, (%ebp)
+
+	call	f           	//call执行的同时，把函数的返回地址push进栈了
+
+	addl	$8, %esp    	//addl $x, %esp 其中x = 4*，回收调用的参数
+	
+	movl	%eax, -4(%ebp)	//将f(999, 0)的返回值保存到局部变量。因为这里return f(999, 0);，等价于int i = f(999, 0); return i;
+	movl	-4(%ebp), %eax  //return
+	
+	movl	%ebp, %esp
+	popl	%ebp			//将原函数的%ebp送回给%ebp
+	ret
+	.size	main,.-main
+.globl f
+	.type	f,@function
+f:
+	pushl	%ebp        
+	movl	%esp, %ebp
+	movl	12(%ebp), %eax
+	
+	movl	%ebp, %esp
+	popl	%ebp
+	ret
+	.size	f,.-f
